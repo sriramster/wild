@@ -644,7 +644,7 @@ impl Report {
         Ok(report)
     }
 
-    const VALIDATION_MAP: [ValidationMap; 7] = [
+    const VALIDATION_MAP: &[ValidationMap] = &[
         (GNU_HASH_SECTION_NAME_STR, gnu_hash::check_object),
         (HASH_SECTION_NAME_STR, sysv_hash::check_object),
         ("index", asm_diff::validate_indexes),
