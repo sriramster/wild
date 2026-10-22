@@ -644,24 +644,19 @@ impl Report {
         Ok(report)
     }
 
-    const VALIDATION_MAP: [ValidationMap ; 7] = [
+    const VALIDATION_MAP: [ValidationMap; 7] = [
         (GNU_HASH_SECTION_NAME_STR, gnu_hash::check_object),
         (HASH_SECTION_NAME_STR, sysv_hash::check_object),
         ("index", asm_diff::validate_indexes),
         ("section.null", asm_diff::validate_null_section),
         (GOT_PLT_SECTION_NAME_STR, asm_diff::validate_got_plt),
         (SYMTAB_SECTION_NAME_STR, symtab::validate_debug),
-        (DYNSYM_SECTION_NAME_STR, symtab::validate_dynamic)
+        (DYNSYM_SECTION_NAME_STR, symtab::validate_dynamic),
     ];
 
     fn run_on_objects(&mut self, objects: &[Binary], arch: ArchKind) {
         for (validation_name, validation_fn) in Self::VALIDATION_MAP.iter() {
-            validate_objects(
-                self,
-                objects,
-                validation_name,
-                validation_fn,
-            );
+            validate_objects(self, objects, validation_name, validation_fn);
         }
         header_diff::check_dynamic_headers(self, objects);
         header_diff::check_file_headers(self, objects);
