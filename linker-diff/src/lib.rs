@@ -655,7 +655,7 @@ impl Report {
     ];
 
     fn run_on_objects(&mut self, objects: &[Binary], arch: ArchKind) {
-        for (validation_name, validation_fn) in Self::VALIDATION_MAP.iter() {
+        for (validation_name, validation_fn) in Self::VALIDATION_MAP {
             validate_objects(self, objects, validation_name, validation_fn);
         }
         header_diff::check_dynamic_headers(self, objects);
