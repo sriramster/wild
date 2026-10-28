@@ -53,6 +53,7 @@ mod symbol_diff;
 mod symtab;
 mod sysv_hash;
 mod trace;
+#[macro_use]
 mod utils;
 mod version_diff;
 mod x86_64;
@@ -149,196 +150,197 @@ impl Config {
                 // We don't currently support allocating space except in sections, so we have
                 // sections to hold the section and program headers. We then need
                 // to ignore them because GNU ld doesn't define such sections.
-                "section.shdr",
-                "section.phdr",
+                section_hdr!("shdr"),
+                section_hdr!("phdr"),
                 // We don't yet support these sections.
-                "section.data.rel.ro",
+                section_hdr!("data", "rel", "ro"),
                 // We set this to 8. GNU ld sometimes does too, but sometimes to 0.
-                "section.got.entsize",
-                "section.plt.got.entsize",
-                "section.plt.entsize",
+                section_hdr!("got", "entsize"),
+                section_hdr!("plt", "got","entsize"),
+                section_hdr!("plt", "entsize"),
                 // GNU ld sometimes sets this differently that we do.
-                "section.plt",
-                "section.plt.alignment",
-                "section.bss.alignment",
-                "section.gnu.build.attributes",
-                "section.annobin.notes.entsize",
+                section_hdr!("plt"),
+                section_hdr!("plt", "alignment"),
+                section_hdr!("bss", "alignment"),
+                section_hdr!("gnu", "build", "attributes"),
+                section_hdr!("annobin", "notes", "entsize"),
                 // We don't yet group .lrodata sections separately.
-                "section.lrodata",
+                section_hdr!("lrodata"),
                 // We sometimes eliminate __tls_get_addr where GNU ld doesn't. This can mean that
                 // we have no versioned symbols for ld-linux-x86-64.so.2 or
                 // equivalent, which means we end up with one less version record.
-                ".dynamic.DT_VERNEEDNUM",
+                dynamic_hdr!("DT_VERNEEDNUM"),
                 // We currently handle these dynamic tags differently
-                ".dynamic.DT_JMPREL",
-                ".dynamic.DT_PLTGOT",
-                ".dynamic.DT_PLTREL",
+                dynamic_hdr!("DT_JMPREL"),
+                dynamic_hdr!("DT_PLTGOT"),
+                dynamic_hdr!("DT_PLTREL"),
                 // We currently produce a .got.plt whenever we produce .plt, but GNU ld doesn't
-                "section.got.plt",
+                section_hdr!("got", "plt"),
                 GOT_PLT_SECTION_NAME_STR,
                 // We don't currently produce a separate .plt.sec section.
-                "section.plt.sec",
+                section_hdr!("plt", "sec"),
                 // Different hash values due to different implementations.
-                ".dynamic.DT_HASH",
+                dynamic_hdr!("DT_HASH"),
                 // Different hash values due to different implementations.
                 ".hash",
-                "section.hash.alignment",
-                "section.hash.entsize",
+                section_hdr!("hash", "alignment"),
+                section_hdr!("hash", "entsize"),
                 // Some other linkers seem to generate a `.hash` section even when there are no
                 // dynamic symbols.
-                "section.hash",
+                section_hdr!("hash"),
                 // aarch64-linux-gnu-ld on arch linux emits DT_BIND_NOW instead of
                 // DT_FLAGS.BIND_NOW
-                ".dynamic.DT_BIND_NOW",
-                ".dynamic.DT_FLAGS.BIND_NOW",
+                dynamic_hdr!("DT_BIND_NOW"),
+                dynamic_hdr!("DT_FLAGS", "BIND_NOW"),
                 // When GNU ld encounters a GOT-forming reference to an ifunc, it generates a
                 // canonical PLT entry and points the GOT at that. This means that it ends up with
                 // GOT->PLT->GOT. We don't as yet support doing this.
-                "rel.missing-got-plt-got",
+                rel_hdr!("missing-got-plt-got"),
                 // We do support this. TODO: Should definitely look into why we're seeing this
                 // missing in our output.
-                "section.rela.plt",
+                section_hdr!("rela", "plt"),
                 // We currently write 10 byte PLT entries in some cases where GNU ld writes 8 byte
                 // ones.
-                "section.plt.got.alignment",
+                section_hdr!("plt", "got", "alignment"),
                 // GNU ld sometimes makes this writable sometimes not. Presumably this depends on
                 // whether there are relocations or some flags.
-                "section.eh_frame.flags",
+                section_hdr!("eh_frame", "flags"),
                 // TLSDESC relaxations aren't yet implemented.
-                "rel.match_failed.R_X86_64_GOTPC32_TLSDESC",
-                "rel.match_failed.R_X86_64_CODE_4_GOTPC32_TLSDESC",
-                "rel.missing-opt.R_X86_64_TLSDESC_CALL.SkipTlsDescCall.*",
+                rel_hdr!("match_failed", "R_X86_64_GOTPC32_TLSDESC"),
+                rel_hdr!("match_failed", "R_X86_64_CODE_4_GOTPC32_TLSDESC"),
+                rel_hdr!("missing-opt", "R_X86_64_TLSDESC_CALL", "SkipTlsDescCall", "*"),
                 // Wild eliminates GOTPCRELX in statically linked executables even for undefined
                 // symbols, whereas other linkers don't. This is a valid optimisation that other
                 // linkers don't currently do.
-                "rel.extra-opt.R_X86_64_GOTPCRELX.CallIndirectToRelative.static-*",
+                rel_hdr!("extra-opt", "R_X86_64_GOTPCRELX", "CallIndirectToRelative", "static-*"),
                 // Wild applies MovIndirectToLea relaxation to _DYNAMIC symbol in static builds
                 // because it's marked as NON_INTERPOSABLE. GNU ld keeps the GOT-relative access.
                 // Both are correct, but Wild's approach is more optimized.
-                "rel.extra-opt.R_X86_64_REX_GOTPCRELX.MovIndirectToLea.static-*",
+                rel_hdr!("extra-opt", "R_X86_64_REX_GOTPCRELX", "MovIndirectToLea", "static-*"),
                 // We don't yet support emitting warnings.
-                "section.gnu.warning",
+                section_hdr!("gnu", "warning"),
                 // GNU ld sometimes applies relaxations that we don't yet.
-                "rel.match_failed.R_AARCH64_TLSDESC_LD64_LO12",
-                "rel.match_failed.R_AARCH64_TLSGD_ADD_LO12_NC",
-                "rel.missing-opt.R_X86_64_TLSGD.TlsGdToInitialExec.shared-object",
+                rel_hdr!("match_failed", "R_AARCH64_TLSDESC_LD64_LO12"),
+                rel_hdr!("match_failed", "R_AARCH64_TLSGD_ADD_LO12_NC"),
+                rel_hdr!("missing-opt", "R_X86_64_TLSGD", "TlsGdToInitialExec", "shared-object"),
                 // GNU ld sometimes relaxes an adrp instruction to an adr instruction when the
                 // address is known and within +/-1MB. We don't as yet.
-                "rel.missing-opt.R_AARCH64_ADR_GOT_PAGE.AdrpToAdr.*",
-                "rel.missing-opt.R_AARCH64_ADR_PREL_PG_HI21.AdrpToAdr.*",
-                "rel.extra-opt.R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21.MovzXnLsl16.*",
+                rel_hdr!("missing-opt", "R_AARCH64_ADR_GOT_PAGE", "AdrpToAdr", "*"),
+                rel_hdr!("missing-opt", "R_AARCH64_ADR_PREL_PG_HI21", "AdrpToAdr", "*"),
+                rel_hdr!("extra-opt", "R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21", "MovzXnLsl16", "*"),
                 // LLD does some different relaxations to us
-                "rel.missing-opt.R_AARCH64_ADR_GOT_PAGE.ReplaceWithNop.*",
-                "rel.missing-opt.R_AARCH64_ADR_PREL_PG_HI21.ReplaceWithNop.*",
+                rel_hdr!("missing-opt", "R_AARCH64_ADR_GOT_PAGE", "ReplaceWithNop", "*"),
+                rel_hdr!("missing-opt", "R_AARCH64_ADR_PREL_PG_HI21", "ReplaceWithNop", "*"),
                 // Wild and lld relax ADRP+ADD to NOP+ADR, but GNU ld does not.
-                "rel.extra-opt.R_AARCH64_ADD_ABS_LO12_NC.AdrpAddToNopAdr.*",
-                "rel.extra-opt.R_AARCH64_ADR_PREL_PG_HI21.ReplaceWithNop.*",
+                rel_hdr!("extra-opt", "R_AARCH64_ADD_ABS_LO12_NC", "AdrpAddToNopAdr", "*"),
+                rel_hdr!("extra-opt", "R_AARCH64_ADR_PREL_PG_HI21", "ReplaceWithNop", "*"),
                 // The other linkers set properties on sections if all input sections have that
                 // property. For sections like .rodata, this seems like an unimportant behaviour to
                 // replicate.
-                "section.rodata.entsize",
-                "section.rodata.flags",
+                section_hdr!("rodata", "entsize"),
+                section_hdr!("rodata", "flags"),
                 // We emit dynamic relocations for direct references to undefined weak symbols that
                 // might be provided at runtime as well as GOT entries for indirect references. GNU
                 // ld and lld only emit the GOT entries and leave direct references as null. Our
                 // behaviour seems more consistent with the description of
                 // `-zdynamic-undefined-weak`.
-                "rel.undefined-weak.dynamic.R_X86_64_64",
-                "rel.undefined-weak.dynamic.R_AARCH64_ABS64",
+                rel_hdr!("undefined-weak", "dynamic", "R_X86_64_64"),
+                rel_hdr!("undefined-weak", "dynamic", "R_AARCH64_ABS64"),
                 // On aarch64, GNU ld, at least sometimes, converts R_AARCH64_ABS64 to a
                 // PLT-forming relocation. We at present, don't.
-                "rel.dynamic-plt-bypass",
+                rel_hdr!("dynamic-plt-bypass"),
                 // If we don't optimise a TLS access, then we'll have references to __tls_get_addr,
                 // when GNU ld doesn't.
                 "dynsym.__tls_get_addr.*",
                 // GNU ld emits two segments, whereas wild emits only a single segment.
-                "segment.LOAD.R.*",
+                segment_hdr!("LOAD", "R", "*"),
                 // We haven't provided an implementation that is compatible with existing linkers.
-                "segment.PHDR.*",
-                "segment.GNU_RELRO.*",
-                "segment.GNU_STACK.*",
+                segment_hdr!("PHDR", "*"),
+                segment_hdr!("GNU_RELRO", "*"),
+                segment_hdr!("GNU_STACK", "*"),
                 // Wild currently generates PT_NOTE even for non-alloc note sections, while the
                 // other linkers don't.
-                "segment.NOTE.*",
+                segment_hdr!("NOTE", "*"),
                 // TODO: RISC-V
-                "segment.LOAD.RW.alignment",
+                segment_hdr!("LOAD", "RW", "alignment"),
                 // TODO: Latest lld sometimes doesn’t create a .note.gnu.property section even when
                 // Wild does.
-                "segment.GNU_PROPERTY.alignment",
-                "segment.GNU_PROPERTY.flags",
+                segment_hdr!("GNU_PROPERTY", "alignment"),
+                segment_hdr!("GNU_PROPERTY", "flags"),
                 // TODO: We consider SFrame sections experimental and disabled by default.
-                "segment.GNU_SFRAME.alignment",
-                "segment.GNU_SFRAME.flags",
-                "section.sframe",
+                segment_hdr!("GNU_SFRAME", "alignment"),
+                segment_hdr!("GNU_SFRAME", "flags"),
+                section_hdr!("sframe"),
                 // Different linkers put the PLT in different locations relative to .text, so
                 // whether range-extension thunks are needed varies.
-                "rel.plt.extra-thunk",
-                "rel.plt.absent-thunk",
+                rel_hdr!("plt", "extra-thunk"),
+                rel_hdr!("plt", "absent-thunk"),
                 // On some systems Wild outputs these symbols while GNU ld does not.
             ]
-            .into_iter()
-            .map(ToOwned::to_owned),
+                .into_iter()
+                .map(ToOwned::to_owned),
         );
 
         match arch {
             ArchKind::Aarch64 => self.ignore.extend(
                 [
-                    "section.ARM.attributes",
+                    section_hdr!("ARM", "attributes"),
                     // Other linkers have a bigger initial PLT entry, thus the entsize is set to
                     // zero: https://sourceware.org/bugzilla/show_bug.cgi?id=26312
-                    "section.plt.entsize",
+                    section_hdr!("plt", "entsize"),
                     // On Alpine Linux, aarch64, GNU ld seems to emit the _DYNAMIC symbol without a
                     // section index instead of pointing it at the .dynamic section.
-                    "rel.extra-symbol._DYNAMIC",
+                    rel_hdr!("extra-symbol", "_DYNAMIC"),
                     // Also on Alpine Linux, aarch64, it seems that GNU ld is emitting an
                     // unnecessary GLOB_DAT relocation in a GOT entry.
-                    "rel.missing-got-dynamic.executable",
+                    rel_hdr!("missing-got-dynamic", "executable"),
                     // GNU ld replaces calls to undefined symbols with nop. Wild instead encodes
                     // bl 0x0 so that if the call site is reached, it will crash rather than
                     // silently continuing execution.
-                    "rel.missing-opt.R_AARCH64_CALL26.ReplaceWithNop.*",
-                    "rel.missing-opt.R_AARCH64_JUMP26.ReplaceWithNop.*",
+                    rel_hdr!("missing-opt", "R_AARCH64_CALL26", "ReplaceWithNop", "*"),
+                    rel_hdr!("missing-opt", "R_AARCH64_JUMP26", "ReplaceWithNop", "*"),
                 ]
-                .into_iter()
-                .map(ToOwned::to_owned),
+                    .into_iter()
+                    .map(ToOwned::to_owned),
             ),
             ArchKind::RiscV64 => self.ignore.extend(
                 [
                     // TODO: for some reason, main is put into .dynsym by GNU ld.
                     "dynsym.main.section",
                     // GOT entries may differ due to unimplemented relaxations
-                    "section.got.*",
+                    section_hdr!("got", "*"),
                     // Dynamic relocations may differ
-                    "rel.dynamic.*",
-                    "rel.undefined-weak.*",
+                    rel_hdr!("dynamic", "*"),
+                    rel_hdr!("undefined-weak", "*"),
                     // Symbol address inconsistencies due to different optimizations
                     "error.*",
                     "section-diff-failed*",
                     // .relro_padding is showing up on risc-v.
-                    "section.relro_padding",
+                    section_hdr!("relro_padding"),
                 ]
-                .into_iter()
-                .map(ToOwned::to_owned),
+                    .into_iter()
+                    .map(ToOwned::to_owned),
             ),
             ArchKind::X86_64 => {}
             ArchKind::Ppc64 => {}
             ArchKind::LoongArch64 => self.ignore.extend(
                 [
-                    "section.sdata",
-                    "section.iplt",
-                    "rel.unknown_failure*",
+                    section_hdr!("sdata"),
+                    section_hdr!("iplt"),
+                    rel_hdr!("unknown_failure*"),
                     "literal-byte-mismatch*",
                     "error.*",
                     "section-diff-failed*",
                     // GNU ld replaces calls to undefined symbols with nop. Wild instead encodes
                     // bl 0x0 so that if the call site is reached, it will crash rather than
                     // silently continuing execution.
-                    "rel.missing-opt.R_LARCH_B26.ReplaceWithNop.*",
+                    rel_hdr!("missing-opt", "R_LARCH_B26", "ReplaceWithNop", "*"),
                 ]
-                .into_iter()
-                .map(ToOwned::to_owned),
+                    .into_iter()
+                    .map(ToOwned::to_owned),
             ),
         }
+
 
         self.equiv.push((
             GOT_SECTION_NAME_STR.to_owned(),

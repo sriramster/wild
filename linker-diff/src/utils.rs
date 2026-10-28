@@ -7,6 +7,30 @@ use std::process::Command;
 use std::process::Stdio;
 use tempfile::NamedTempFile;
 
+macro_rules! dynamic_hdr {
+    ($ty:literal $(, $morety:literal)* $(,)?) => {
+        concat!(".dynamic", ".", concat!($ty $(, concat!(".", $morety))*))
+    }
+}
+
+macro_rules! rel_hdr {
+    ($ty:literal $(, $morety:literal)* $(,)?) => {
+        concat!("rel", ".", concat!($ty $(, concat!(".", $morety))*))
+    }
+}
+
+macro_rules! section_hdr {
+    ($ty:literal $(, $morety:literal)* $(,)?) => {
+        concat!("section", ".", concat!($ty $(, concat!(".", $morety))*))
+    }
+}
+
+macro_rules! segment_hdr {
+    ($ty:literal $(, $morety:literal)* $(,)?) => {
+        concat!("segment", ".", concat!($ty $(, concat!(".", $morety))*))
+    }
+}
+
 pub fn decode_insn_with_objdump(insn: &[u8], address: u64, arch: ArchKind) -> Result<String> {
     // TODO: seems objdump cannot read from stdin
     let mut tmpfile = NamedTempFile::new()?;
